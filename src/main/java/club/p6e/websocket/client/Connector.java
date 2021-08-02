@@ -6,9 +6,14 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -105,21 +110,37 @@ public class Connector {
      * 根据配置文件连接
      * @param config 配置文件对象
      */
-    public void connect(Config config, Callback callback, boolean isAsync) {
+    public Channel connect(Config config, Callback callback, boolean isAsync) {
         try {
-            this.bootstrap.handler(new ChannelInitializer<>() {
+
+            this.bootstrap.handler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel channel) {
+                    // WSS 协议连接
+                    if (config.getAgreement() == Config.Agreement.WSS) {
+                        try {
+                            final SslContext sslContext =
+                                    SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+                            channel.pipeline().addLast(sslContext.newHandler(channel.alloc()));
+                        } catch (SSLException e) {
+                            e.printStackTrace();
+                            LOGGER.info("[ p6e web socket ] ==> connector connect ssl exception, " + e.getMessage());
+                        }
+                    }
                     channel.pipeline().addLast(new HttpClientCodec());
-                    channel.pipeline().addLast(new Handler(
-                            config, isAsync ? new CallbackPackAsync(callback) : new CallbackPackSync(callback)));
+                    channel.pipeline().addLast(new HttpObjectAggregator(8192));
+                    channel.pipeline().addLast(new Handler(config, isAsync ? new CallbackPackAsync(callback) : new CallbackPackSync(callback)));
                 }
             });
-            this.bootstrap.connect(config.getHost(), config.getPort()).sync();
+            LOGGER.info("[ p6e web socket ] ==> connector connect " +
+                    "( host: " + config.getHost() + " , port: " + config.getPort() + " ) start...");
+            final ChannelFuture channelFuture = this.bootstrap.connect(config.getHost(), config.getPort()).sync();
             LOGGER.info("[ p6e web socket ] ==> connector connect " +
                     "( host: " + config.getHost() + " , port: " + config.getPort() + " ) successfully.");
+            return channelFuture.channel();
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
     }
 
