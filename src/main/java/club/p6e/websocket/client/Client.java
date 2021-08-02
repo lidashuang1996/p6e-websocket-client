@@ -3,6 +3,8 @@ package club.p6e.websocket.client;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 
 /**
  * @author lidashuang
@@ -46,11 +48,26 @@ public class Client {
     }
 
     /**
+     * 关闭 channel
+     */
+    public void close() {
+        channel.close();
+    }
+
+    /**
      * 发送字节码消息
      * @param byteBuf ByteBuf 对象
      */
     public void sendMessageBinary(ByteBuf byteBuf) {
         channel.writeAndFlush(byteBuf);
+    }
+
+    public void sendMessagePong() {
+        channel.writeAndFlush(new PongWebSocketFrame());
+    }
+
+    public void sendMessagePing() {
+        channel.writeAndFlush(new PingWebSocketFrame());
     }
 
 }

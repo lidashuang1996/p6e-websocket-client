@@ -27,7 +27,7 @@ public class Config {
         /**
          * WSS 协议
          */
-        WSS
+        WSS;
     }
 
     /**
@@ -125,7 +125,7 @@ public class Config {
     /**
      * 协议类型
      */
-    private String agreement;
+    private Agreement agreement;
     /**
      * 请求路径
      */
@@ -263,6 +263,7 @@ public class Config {
     }
 
     public int getPort() {
+
         return port;
     }
 
@@ -282,11 +283,11 @@ public class Config {
         refreshUri();
     }
 
-    public String getAgreement() {
+    public Agreement getAgreement() {
         return agreement;
     }
 
-    public void setAgreement(String agreement) {
+    public void setAgreement(Agreement agreement) {
         this.agreement = agreement;
         // 刷新 uri
         refreshUri();
@@ -314,13 +315,15 @@ public class Config {
 
     public void setUri(URI uri) {
         this.uri = uri;
-
         // 更新其它的参数
-        this.setAgreement(this.uri.getScheme());
-        this.setHost(this.uri.getHost());
-        this.setPort(this.uri.getPort());
-        this.setParam(this.uri.getQuery());
-        this.setPath(this.uri.getRawPath());
+        this.setHost(uri.getHost());
+        this.setPort(uri.getPort());
+        this.setParam(uri.getQuery());
+        this.setPath(uri.getRawPath());
+        this.setAgreement("wss".equals(uri.getScheme()) ? Agreement.WSS : Agreement.WS);
+        if (this.getPort() <= 0) {
+            this.setPort(this.getAgreement() == Agreement.WSS ? 443 : 80);
+        }
     }
 
     public Version getVersion() {
@@ -403,13 +406,18 @@ public class Config {
      * @return Web Socket Version 对象
      */
     public WebSocketVersion version() {
-        return switch (this.version) {
-            case V00 -> WebSocketVersion.V00;
-            case V07 -> WebSocketVersion.V07;
-            case V08 -> WebSocketVersion.V08;
-            case V13 -> WebSocketVersion.V13;
-            default -> WebSocketVersion.UNKNOWN;
-        };
+        switch (this.version) {
+            case V00:
+                return WebSocketVersion.V00;
+            case V07:
+                return WebSocketVersion.V07;
+            case V08:
+                return WebSocketVersion.V08;
+            case V13:
+                return WebSocketVersion.V13;
+            default:
+                return WebSocketVersion.UNKNOWN;
+        }
     }
 
     /**
@@ -422,10 +430,12 @@ public class Config {
         for (final String key : this.httpHeaders.keySet()) {
             httpHeaders.add(key, httpHeaders.get(key));
         }
-        for (Cookie cookie : this.cookies) {
-            cookiesSb.append(cookie.toString());
+        if (this.cookies.size() > 0) {
+            for (Cookie cookie : this.cookies) {
+                cookiesSb.append(cookie.toString());
+            }
+            httpHeaders.add(COOKIE, cookiesSb.toString());
         }
-        httpHeaders.add(COOKIE, cookiesSb.toString());
         return httpHeaders;
     }
 
