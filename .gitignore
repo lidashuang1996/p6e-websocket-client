@@ -1,5 +1,7 @@
 **/*.log
 
+
+
 # Editor directories and files
 .idea
 .vscode
@@ -9,3 +11,5 @@
 *.sln
 *.local
 
+# target
+**/target/*
