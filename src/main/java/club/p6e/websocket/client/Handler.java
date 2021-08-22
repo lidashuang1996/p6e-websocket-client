@@ -1,9 +1,10 @@
 package club.p6e.websocket.client;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandler;
-import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
@@ -33,6 +34,7 @@ public class Handler implements ChannelInboundHandler {
      * @param callback 回调函数
      */
     public Handler(Config config, Callback callback) {
+        LOGGER.debug("WebSocketClient handshake request http headers ==> \n\n" + config.httpHeaders() + "\n");
         this.callback = callback;
         this.webSocketClientHandshaker = WebSocketClientHandshakerFactory.newHandshaker(
                 config.uri(),
@@ -69,7 +71,6 @@ public class Handler implements ChannelInboundHandler {
     public void channelActive(ChannelHandlerContext ctx) {
         LOGGER.debug("( " + getClient(ctx).getId() + " ) [ channelActive ] ==> " + ctx);
         webSocketClientHandshaker.handshake(ctx.channel());
-
     }
 
     @Override
@@ -80,34 +81,46 @@ public class Handler implements ChannelInboundHandler {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         LOGGER.debug("( " + getClient(ctx).getId() + " ) [ channelRead ] ==> " + ctx);
+        if (msg instanceof HttpResponse) {
+            final HttpResponse response = (HttpResponse) msg;
+            msg = new DefaultFullHttpResponse(response.protocolVersion(), response.status(),
+                    Unpooled.buffer(0), response.headers(), new DefaultHttpHeaders());
+        }
         if (msg instanceof FullHttpResponse) {
-            LOGGER.debug("WebSocketClient handshake HTTP ==> \n\n" + msg + "\n");
-            // 判断是否为 HTTP 返回
-            if (webSocketClientHandshaker.isHandshakeComplete()) {
-                final FullHttpResponse response = (FullHttpResponse) msg;
-                final String error = "unexpected http response [ "
-                        + response.status() + " ] ==> "
-                        + response.content().toString(CharsetUtil.UTF_8);
-                LOGGER.error(error);
-                exceptionCaught(ctx, new IOException(error));
-            } else {
-                // 结束握手
-                webSocketClientHandshaker.finishHandshake(ctx.channel(), (FullHttpResponse) msg);
-                client = new Client(ctx.channel());
-                callback.onOpen(client);
+            final FullHttpResponse httpResponse = (FullHttpResponse) msg;
+            LOGGER.debug("WebSocketClient handshake response HTTP ==> \n\n" + msg + "\n");
+            try {
+                // 判断是否为 HTTP 返回
+                if (webSocketClientHandshaker.isHandshakeComplete()) {
+                    final String error = "unexpected http response [ "
+                            + httpResponse.status() + " ] ==> "
+                            + httpResponse.content().toString(CharsetUtil.UTF_8);
+                    LOGGER.error(error);
+                    exceptionCaught(ctx, new IOException(error));
+                } else {
+                    // 结束握手
+                    webSocketClientHandshaker.finishHandshake(ctx.channel(), httpResponse);
+                    client = new Client(ctx.channel());
+                    callback.onOpen(client);
+                }
+            } finally {
+                // 释放缓存
+                httpResponse.release();
             }
         } else if (msg instanceof WebSocketFrame){
+            final WebSocketFrame frame = (WebSocketFrame) msg;
             if (client == null) {
                 final String error = "connection exception, client is null.";
                 LOGGER.error(error);
                 exceptionCaught(ctx, new IOException(error));
             } else {
-                final WebSocketFrame frame = (WebSocketFrame) msg;
                 final ByteBuf byteBuf = frame.content();
                 if (frame instanceof BinaryWebSocketFrame) {
                     callback.onMessageBinary(client, byteBuf);
                 } else if (frame instanceof TextWebSocketFrame) {
                     callback.onMessageText(client, ((TextWebSocketFrame) frame).text());
+                    // 文本就回收掉
+                    frame.release();
                 } else if (frame instanceof PongWebSocketFrame) {
                     callback.onMessagePong(client, byteBuf);
                 } else if (frame instanceof PingWebSocketFrame) {

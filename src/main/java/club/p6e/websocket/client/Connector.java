@@ -128,7 +128,6 @@ public class Connector {
                         }
                     }
                     channel.pipeline().addLast(new HttpClientCodec());
-                    channel.pipeline().addLast(new HttpObjectAggregator(8192));
                     channel.pipeline().addLast(new Handler(config, isAsync ? new CallbackPackAsync(callback) : new CallbackPackSync(callback)));
                 }
             });

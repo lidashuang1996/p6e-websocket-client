@@ -315,14 +315,13 @@ public class Config {
 
     public void setUri(URI uri) {
         this.uri = uri;
-        // 更新其它的参数
-        this.setHost(uri.getHost());
-        this.setPort(uri.getPort());
-        this.setParam(uri.getQuery());
-        this.setPath(uri.getRawPath());
-        this.setAgreement("wss".equals(uri.getScheme()) ? Agreement.WSS : Agreement.WS);
+        this.host = uri.getHost();
+        this.port =  uri.getPort();
+        this.param = uri.getQuery();
+        this.path = uri.getRawPath();
+        this.agreement = "wss".equals(uri.getScheme()) ? Agreement.WSS : Agreement.WS;
         if (this.getPort() <= 0) {
-            this.setPort(this.getAgreement() == Agreement.WSS ? 443 : 80);
+            this.port = this.getAgreement() == Agreement.WSS ? 443 : 80;
         }
     }
 
@@ -354,11 +353,13 @@ public class Config {
         this.cookies.clear();
     }
 
+    public void addHttpHeaders(String key, Object value) {
+        this.httpHeaders.put(key, value);
+    }
+
     public void addHttpHeaders(Map<String, Object> httpHeaders) {
         if (httpHeaders != null) {
-            for (String key : httpHeaders.keySet()) {
-                this.httpHeaders.put(key, httpHeaders.get(key));
-            }
+            this.httpHeaders.putAll(httpHeaders);
         }
     }
 
@@ -426,17 +427,19 @@ public class Config {
      */
     public HttpHeaders httpHeaders() {
         final StringBuilder cookiesSb = new StringBuilder();
-        final HttpHeaders httpHeaders = new DefaultHttpHeaders();
-        for (final String key : this.httpHeaders.keySet()) {
-            httpHeaders.add(key, httpHeaders.get(key));
+        final HttpHeaders rHttpHeaders = new DefaultHttpHeaders();
+        if (httpHeaders.size() > 0) {
+            for (final String key : httpHeaders.keySet()) {
+                rHttpHeaders.add(key, httpHeaders.get(key));
+            }
         }
-        if (this.cookies.size() > 0) {
-            for (Cookie cookie : this.cookies) {
+        if (cookies.size() > 0) {
+            for (Cookie cookie : cookies) {
                 cookiesSb.append(cookie.toString());
             }
-            httpHeaders.add(COOKIE, cookiesSb.toString());
+            rHttpHeaders.add(COOKIE, cookiesSb.toString());
         }
-        return httpHeaders;
+        return rHttpHeaders;
     }
 
     @Override

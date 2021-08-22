@@ -12,11 +12,13 @@ public class Test {
 
     public static void main(String[] args) {
 //        P6eWebSocketClientApplication.initThreadPool();
-        P6eWebSocketClientApplication.connector().connect(new Config("wss://danmuproxy.douyu.com:8504/"),
+
+
+        P6eWebSocketClientApplication.connector().connect(new Config("wss://6f305826-ws.va.huya.com/"),
                 new Callback() {
             @Override
             public void onOpen(Client client) {
-
+                System.out.println("xxxxxxxxxxxxxxxxxxxxxxx");
             }
 
             @Override
