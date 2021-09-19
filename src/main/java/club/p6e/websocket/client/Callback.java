@@ -3,6 +3,7 @@ package club.p6e.websocket.client;
 import io.netty.buffer.ByteBuf;
 
 /**
+ * 回调函数
  * @author lidashuang
  * @version 1.0
  */
@@ -30,6 +31,7 @@ public interface Callback {
     /**
      * 触发文本消息的事件
      * @param client WebSocketClient 对象
+     * @param message 消息内容
      */
     public void onMessageText(Client client, String message);
 

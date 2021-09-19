@@ -9,6 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 异步处理消息的线程池对象
  * @author lidashuang
  * @version 1.0
  */
@@ -17,7 +18,7 @@ public class ThreadPool {
     /** 线程池对象 */
     private static ThreadPoolExecutor EXECUTOR;
     /** 线程池名称 */
-    private static final String POOL_NAME = "WEB SOCKET TASK";
+    private static final String POOL_NAME = "P6E_WS_CTP";
     /** 注入日志对象 */
     private static final Logger LOGGER = LoggerFactory.getLogger(ThreadPool.class);
 
@@ -29,7 +30,8 @@ public class ThreadPool {
             setThreadPoolExecutor(new ThreadPoolExecutor(5, 30, 60L,
                     TimeUnit.SECONDS, new SynchronousQueue<>(), new DefaultThreadFactory(POOL_NAME)));
         } else {
-            throw new RuntimeException("thread pool has been initialized and does not need to be reinitialized.");
+            throw new RuntimeException(ThreadPool.class
+                    + " thread pool has been initialized and does not need to be reinitialized.");
         }
     }
 
@@ -41,7 +43,8 @@ public class ThreadPool {
         if (EXECUTOR == null) {
             setThreadPoolExecutor(executor);
         } else {
-            throw new RuntimeException("thread pool has been initialized and does not need to be reinitialized.");
+            throw new RuntimeException(ThreadPool.class
+                    + " thread pool has been initialized and does not need to be reinitialized.");
         }
     }
 
@@ -53,9 +56,10 @@ public class ThreadPool {
     private synchronized static void setThreadPoolExecutor(ThreadPoolExecutor executor) {
         if (EXECUTOR == null) {
             EXECUTOR = executor;
-            LOGGER.info("[ p6e web socket client ] ==> thread pool initialization succeeded.");
+            LOGGER.info("[ P6eWebSocketClient ] ==> thread pool initialization succeeded.");
         } else {
-            throw new RuntimeException("thread pool has been initialized and does not need to be reinitialized.");
+            throw new RuntimeException(ThreadPool.class
+                    + " thread pool has been initialized and does not need to be reinitialized.");
         }
     }
 
@@ -67,7 +71,7 @@ public class ThreadPool {
         if (EXECUTOR != null && !EXECUTOR.isShutdown()) {
             EXECUTOR.execute(runnable);
         } else {
-            throw new RuntimeException("thread pool is null or closed.");
+            throw new RuntimeException(ThreadPool.class + " thread pool is not initialized or closed.");
         }
     }
 
@@ -79,6 +83,6 @@ public class ThreadPool {
             EXECUTOR.shutdown();
             EXECUTOR = null;
         }
-        LOGGER.info("[ p6e web socket client ] ==> thread pool closed.");
+        LOGGER.info("[ P6eWebSocketClient ] ==> thread pool closed.");
     }
 }

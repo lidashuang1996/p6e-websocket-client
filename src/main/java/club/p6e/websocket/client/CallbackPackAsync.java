@@ -3,13 +3,19 @@ package club.p6e.websocket.client;
 import io.netty.buffer.ByteBuf;
 
 /**
+ * 异步包装
  * @author lidashuang
  * @version 1.0
  */
 public class CallbackPackAsync implements Callback {
 
+    /** 回调对象 */
     private final Callback callback;
 
+    /**
+     * 构造方法初始化回调对象
+     * @param callback 回调对象
+     */
     public CallbackPackAsync(Callback callback) {
         this.callback = callback;
     }

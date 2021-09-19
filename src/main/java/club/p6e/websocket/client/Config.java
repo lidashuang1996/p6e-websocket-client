@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.util.*;
 
 /**
+ * 通过连接器连接的配置文件对象
  * @author lidashuang
  * @version 1.0
  */
@@ -27,7 +28,7 @@ public class Config {
         /**
          * WSS 协议
          */
-        WSS;
+        WSS
     }
 
     /**
@@ -114,45 +115,25 @@ public class Config {
     /** HTTP 请求头中 Cookie 的名称  */
     private static final String COOKIE = "Cookie";
 
-    /**
-     * 端口
-     */
+    /** 端口 */
     private int port;
-    /**
-     * 主机地址
-     */
+    /** 主机地址 */
     private String host;
-    /**
-     * 协议类型
-     */
+    /** 协议类型 */
     private Agreement agreement;
-    /**
-     * 请求路径
-     */
+    /** 请求路径 */
     private String path;
-    /**
-     * 请求的参数
-     */
+    /** 请求的参数 */
     private String param;
-    /**
-     * uri
-     */
+    /** Uri */
     private URI uri;
-    /**
-     * 版本号
-     */
+    /** 版本号 */
     private Version version = Version.V13;
-    /**
-     * Cookie
-     */
+    /** Cookie */
     private final List<Cookie> cookies = new ArrayList<>();
-    /**
-     * http headers
-     */
+    /** Http Headers */
     private final Map<String, Object> httpHeaders = new HashMap<>();
-    /**
-     * 自定义证书
-     */
+    /** 自定义证书 */
     private final List<Certificate> certificates = new ArrayList<>();
 
     /**
@@ -263,7 +244,6 @@ public class Config {
     }
 
     public int getPort() {
-
         return port;
     }
 
@@ -377,6 +357,14 @@ public class Config {
 
     public void addCertificate(Certificate certificate) {
         this.certificates.add(certificate);
+    }
+
+    public void delCertificate(Certificate certificate) {
+        this.certificates.remove(certificate);
+    }
+
+    public void clearCertificate() {
+        this.certificates.clear();
     }
 
     /**

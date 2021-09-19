@@ -1,12 +1,10 @@
 package club.p6e.websocket.client;
 
-
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
-import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -15,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -28,6 +27,9 @@ public class Connector {
 
     /** 日志注入对象 */
     private static final Logger LOGGER = LoggerFactory.getLogger(Connector.class);
+
+    /** 连接器的 ID */
+    private final String id;
 
     /** Netty 的 Bootstrap */
     private final Bootstrap bootstrap;
@@ -85,15 +87,17 @@ public class Connector {
         this.bootstrap = bootstrap;
         this.eventLoopGroup = eventLoopGroup;
         this.bootstrap
-                .option(ChannelOption.TCP_NODELAY,true)
                 .option(ChannelOption.SO_KEEPALIVE, true)
+                .option(ChannelOption.TCP_NODELAY,true)
                 .option(ChannelOption.AUTO_READ, true);
         this.bootstrap.group(eventLoopGroup);
         this.bootstrap.channel(channelClass);
 
-        CACHE.add(this);
+        this.id = UUID.randomUUID().toString().replace("-", "");
 
-        LOGGER.info("[ p6e web socket ] ==> connector created successfully.");
+        // 添加到缓存中
+        CACHE.add(this);
+        LOGGER.info("[ P6eWebSocketClient ] (" + this.id + ") ==> connector created successfully.");
     }
 
     /**
@@ -110,36 +114,35 @@ public class Connector {
      * 根据配置文件连接
      * @param config 配置文件对象
      */
-    public Channel connect(Config config, Callback callback, boolean isAsync) {
+    public void connect(Config config, Callback callback, boolean isAsync) {
         try {
-
             this.bootstrap.handler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel channel) {
                     // WSS 协议连接
                     if (config.getAgreement() == Config.Agreement.WSS) {
+                        // 这里预留处理自定义证书的问题
                         try {
                             final SslContext sslContext =
                                     SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
                             channel.pipeline().addLast(sslContext.newHandler(channel.alloc()));
                         } catch (SSLException e) {
                             e.printStackTrace();
-                            LOGGER.info("[ p6e web socket ] ==> connector connect ssl exception, " + e.getMessage());
+                            LOGGER.info("[ P6eWebSocketClient ] ==> connector connect ssl exception, " + e.getMessage());
                         }
                     }
                     channel.pipeline().addLast(new HttpClientCodec());
-                    channel.pipeline().addLast(new Handler(config, isAsync ? new CallbackPackAsync(callback) : new CallbackPackSync(callback)));
+                    channel.pipeline().addLast(new Handler(config,
+                            isAsync ? new CallbackPackAsync(callback) : new CallbackPackSync(callback)));
                 }
             });
-            LOGGER.info("[ p6e web socket ] ==> connector connect " +
+            LOGGER.info("[ P6eWebSocketClient ] (" + this.id + ") ==> connector connect " +
                     "( host: " + config.getHost() + " , port: " + config.getPort() + " ) start...");
-            final ChannelFuture channelFuture = this.bootstrap.connect(config.getHost(), config.getPort()).sync();
-            LOGGER.info("[ p6e web socket ] ==> connector connect " +
+            this.bootstrap.connect(config.getHost(), config.getPort()).sync();
+            LOGGER.info("[ P6eWebSocketClient ] (" + this.id + ") ==> connector connect " +
                     "( host: " + config.getHost() + " , port: " + config.getPort() + " ) successfully.");
-            return channelFuture.channel();
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
         }
     }
 
@@ -147,7 +150,19 @@ public class Connector {
      * 关闭连接器的连接
      */
     public void shutdown() {
+        shutdown(true);
+    }
+
+    /**
+     * 关闭连接器的连接
+     * @param isCache 是否从缓存中删除
+     */
+    public void shutdown(boolean isCache) {
+        if (isCache) {
+            // 从缓存中删除
+            CACHE.remove(this);
+        }
         this.eventLoopGroup.shutdownGracefully();
-        LOGGER.info("[ p6e web socket ] ==> connector closed.");
+        LOGGER.info("[ P6eWebSocketClient ] (" + this.id + ") ==> connector closed.");
     }
 }

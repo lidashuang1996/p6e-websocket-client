@@ -4,9 +4,12 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 
+import java.util.Iterator;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
+ * 程序入口
+ * P6e Web Socket Client Application
  * @author lidashuang
  * @version 1.0
  */
@@ -72,19 +75,23 @@ public final class P6eWebSocketClientApplication {
      * @param eventLoopGroup Netty 的 EventLoopGroup
      * @param channelClass channel 的类型
      */
-    public static Connector connector(Bootstrap bootstrap, EventLoopGroup eventLoopGroup, Class<? extends Channel> channelClass) {
+    public static Connector connector(Bootstrap bootstrap,
+                                      EventLoopGroup eventLoopGroup, Class<? extends Channel> channelClass) {
         return new Connector(bootstrap, eventLoopGroup, channelClass);
     }
 
     /**
      * 关闭所有服务
      */
-    public static void shutdown() {
+    public synchronized static void shutdown() {
         // 关闭任务线程池
         shutdownThreadPool();
         // 关闭所有连接器
-        for (final Connector connector : Connector.getConnectors()) {
-            connector.shutdown();
+        final Iterator<Connector> iterator = Connector.getConnectors().iterator();
+        while (iterator.hasNext()) {
+            final Connector connector = iterator.next();
+            connector.shutdown(false);
+            iterator.remove();
         }
     }
 
