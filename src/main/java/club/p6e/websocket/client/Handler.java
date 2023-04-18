@@ -23,9 +23,9 @@ public class Handler implements ChannelInboundHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(Handler.class);
 
     /** 客户端对象 */
-    private Client client;
+    private P6eWebSocketClient client;
     /** 回调函数 */
-    private final Callback callback;
+    private final P6eWebSocketCallback callback;
     /** Web Socket Client Handshake 对象 */
     private final WebSocketClientHandshaker webSocketClientHandshaker;
 
@@ -34,7 +34,7 @@ public class Handler implements ChannelInboundHandler {
      * @param config 配置文件
      * @param callback 回调函数
      */
-    public Handler(Config config, Callback callback) {
+    public Handler(Config config, P6eWebSocketCallback callback) {
         LOGGER.debug("P6eWebSocketClient handshake request http uri ==> " + config.uri());
         LOGGER.debug("P6eWebSocketClient handshake request http version ==> " + config.version());
         LOGGER.debug("P6eWebSocketClient handshake request http headers ==> \n\n" + config.httpHeaders() + "\n");
@@ -53,7 +53,7 @@ public class Handler implements ChannelInboundHandler {
      * @param ctx ChannelHandlerContext 对象
      * @return WebSocketClient 对象
      */
-    private Client getClient(ChannelHandlerContext ctx) {
+    private P6eWebSocketClient getClient(ChannelHandlerContext ctx) {
         if (client == null) {
             createClient(ctx);
         }
@@ -66,7 +66,7 @@ public class Handler implements ChannelInboundHandler {
      */
     private synchronized void createClient(ChannelHandlerContext ctx) {
         if (client == null) {
-            client = new Client(ctx.channel());
+            client = new P6eWebSocketClient(ctx.channel());
         }
     }
 
@@ -118,7 +118,7 @@ public class Handler implements ChannelInboundHandler {
                 } else {
                     // 握手成功，结束握手
                     webSocketClientHandshaker.finishHandshake(ctx.channel(), fullHttpResponse);
-                    client = new Client(ctx.channel());
+                    client = new P6eWebSocketClient(ctx.channel());
                     callback.onOpen(client);
                 }
             } finally {
@@ -138,12 +138,7 @@ public class Handler implements ChannelInboundHandler {
                     // byteBuf 资源需要在使用完成后手动回收
                     callback.onMessageBinary(client, byteBuf);
                 } else if (frame instanceof TextWebSocketFrame) {
-                    try {
-                        callback.onMessageText(client, ((TextWebSocketFrame) frame).text());
-                    } finally {
-                        // 文本就回收掉
-                        frame.release();
-                    }
+                    callback.onMessageText(client, byteBuf);
                 } else if (frame instanceof PongWebSocketFrame) {
                     // byteBuf 资源需要在使用完成后手动回收
                     callback.onMessagePong(client, byteBuf);

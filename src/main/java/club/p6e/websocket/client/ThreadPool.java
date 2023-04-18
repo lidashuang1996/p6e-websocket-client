@@ -3,7 +3,6 @@ package club.p6e.websocket.client;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +26,13 @@ public class ThreadPool {
      */
     public static void init() {
         if (EXECUTOR == null) {
-            setThreadPoolExecutor(new ThreadPoolExecutor(5, 30, 60L,
+            int corePoolSize;
+            try {
+                corePoolSize = Runtime.getRuntime().availableProcessors();
+            } catch (Exception e) {
+                corePoolSize = 8;
+            }
+            setThreadPoolExecutor(new ThreadPoolExecutor(corePoolSize, Integer.MAX_VALUE, 60L,
                     TimeUnit.SECONDS, new SynchronousQueue<>(), new DefaultThreadFactory(POOL_NAME)));
         } else {
             throw new RuntimeException(ThreadPool.class

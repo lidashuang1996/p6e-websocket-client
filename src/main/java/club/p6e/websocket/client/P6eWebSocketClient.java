@@ -12,7 +12,7 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
  * @author lidashuang
  * @version 1.0
  */
-public class Client {
+public class P6eWebSocketClient {
 
     /** 全局 channel 对象 */
     private final Channel channel;
@@ -21,7 +21,7 @@ public class Client {
      * 构造方法初始化
      * @param channel channel 对象
      */
-    public Client(Channel channel) {
+    public P6eWebSocketClient(Channel channel) {
         this.channel = channel;
     }
 

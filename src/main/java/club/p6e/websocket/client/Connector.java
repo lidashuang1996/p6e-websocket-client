@@ -114,7 +114,8 @@ public class Connector {
      * 根据配置文件连接
      * @param config 配置文件对象
      */
-    public void connect(Config config, Callback callback, boolean isAsync) {
+    public Channel connect(Config config, P6eWebSocketCallback callback, boolean isAsync) {
+        ChannelFuture channelFuture = null;
         try {
             this.bootstrap.handler(new ChannelInitializer<Channel>() {
                 @Override
@@ -138,12 +139,13 @@ public class Connector {
             });
             LOGGER.info("[ P6eWebSocketClient ] (" + this.id + ") ==> connector connect " +
                     "( host: " + config.getHost() + " , port: " + config.getPort() + " ) start...");
-            this.bootstrap.connect(config.getHost(), config.getPort()).sync();
+            channelFuture = this.bootstrap.connect(config.getHost(), config.getPort()).sync();
             LOGGER.info("[ P6eWebSocketClient ] (" + this.id + ") ==> connector connect " +
                     "( host: " + config.getHost() + " , port: " + config.getPort() + " ) successfully.");
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return channelFuture == null ? null : channelFuture.channel();
     }
 
     /**
